@@ -1,0 +1,311 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src = "fabric.js-1.6.1/dist/fabric.js"></script>
+  </head>
+  <body >
+    <div>
+     <canvas id="myCanvas" width = 800 height = 800></canvas>
+    </div>
+    <div>
+      <INPUT type = "Button" value = "Draw Graph" onclick="drawGraph()"/> 
+      <INPUT type = "Button" value = "Undo" onclick="undo()"/>  
+      <INPUT type = "Button" value = "Clear Plane" onclick="clearPlane()"/> 
+      <button id ="save">Save</button>
+    </div>
+    <script type="text/javascript">
+      var canvas = new fabric.Canvas('myCanvas', {
+          isDrawingMode : false,
+          selectable : false,
+        });
+      var graph_clicked = false;
+      var pointer;
+      var scale = 40;
+      var points = [];
+
+      canvas.on('mouse:down', function(o){
+        pointer = canvas.getPointer(o.e);
+        if (!graph_clicked) {
+          markPoint(pointer.x, pointer.y);
+        } else{
+          drawGraph();
+        }
+      });
+
+      $('#save').click(function (e){
+
+        var svg = canvas.toSVG();
+        
+        //sending the svg to the server
+        /*$.ajax({
+          crossDomain: true,
+          url: 'http://127.0.0.1:8000/svg/',
+          type: 'GET',
+          data: {
+            'str': svg, 
+          },
+          success: function(){alert('PUT completed');}
+        });*/
+        $.ajax({
+                crossDomain: true,
+                url: 'http://127.0.0.1:8000/svg/',
+                type: 'POST',
+                data: {
+                  'str': svg, 
+                },
+                success: function(){alert('PUT completed');}
+            });
+      });
+
+
+      function drawGraph(){
+        var x0, y0, x1, y1, m;
+        if (points.length != 0) {
+          var p1 = points[points.length - 2];
+          var p2 = points[points.length - 1];
+          m = (p1.y - p2.y) / (p1.x - p2.x);
+
+          var x0 = p1.x -(100/Math.sqrt(m*m+1));
+          var test = (p1.y-p2.y)/(p1.x-p2.x)*(x0-p1.x);
+          if(test<0)
+          var y0 = p1.y - Math.abs(test);
+          else
+          var y0 = p1.y + Math.abs(test);
+
+          //extending last point
+          var x1 = p2.x+(100/Math.sqrt(m*m+1));
+          
+          var ext = m*(x1-p2.x);
+          if(ext>0)
+          var y1 = p2.y+Math.abs(ext);
+          else
+          var y1 = p2.y-Math.abs(ext);
+
+          var line = new fabric.Line([x0, y0, x1, y1],{
+            selectable: false,
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+          canvas.add(line);
+          canvas.renderAll();
+        }
+      }
+
+      function markPoint(x, y){
+        this.x = x;
+        this.y = y;
+        var circle = new fabric.Circle({
+          left: x,
+          top: y,
+          radius: 1,
+          strokeWidth: 5,
+          stroke: 'black',
+          selectable: false,
+          originX: 'center', originY: 'center'
+        });
+
+          xcoor = Math.round(((x-400) / scale)*10)/10;
+          ycoor = Math.round(((400-y)/ scale)*10)/10;
+          
+          coordinates = "("+xcoor+" , "+ycoor+")";
+          var text = new fabric.IText(coordinates,{
+                fontFamily: 'Arial',
+                left: x +1,
+                top: y,
+                fontSize: 10,
+                fontWeight: 'bold',
+                textAlign: "center",
+                fill: "#000000",
+                selectable: false
+              });
+          canvas.add(circle);
+          canvas.add(text);
+          canvas.renderAll();
+          points.push({
+            x: x,
+            y: y
+          });
+      }
+
+      function drawAxis(){
+        
+        var unit;
+        var tick,text, st;
+
+        //drawing x and y axises
+        var xAxis = new fabric.Line([0, 400, 800, 400], {
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+        var yAxis = new fabric.Line([400, 0, 400, 800],{
+          strokeWidth: 2,
+          fill: 'black',
+          stroke: 'black',
+          originX: 'center',
+          originY: 'center',
+          targetFindTolerance: true
+        });
+        canvas.add(xAxis);
+        canvas.add(yAxis);
+
+        //tick marks in xaxis
+        //draw left tick marks
+        xPos = 400 - scale;
+        unit = -1;
+        while(xPos > 0 && xPos <= 800){
+          tick = new fabric.Line([xPos, 390, xPos, 410], {
+            selectable: false,
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+          st = unit.toString() + '';
+            text = new fabric.IText(st, {
+              fontFamily: 'Arial',
+              left: xPos,
+              top: 413,
+              fontSize: 10,
+              fontWeight: 'bold',
+              textAlign: "center",
+              fill: "#000000"
+            });
+            canvas.add(tick);
+            canvas.add(text);
+            unit -= 1;
+            xPos = xPos - scale;
+        }
+
+        //draw right tick marks
+        xPos = 400 + scale;
+        unit = 1; 
+        while(xPos < 800 && xPos > 0){
+          tick = new fabric.Line([xPos, 390, xPos, 410], {
+            selectable: false,
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+          st = unit.toString() + '';
+          text = new fabric.IText(st, {
+            fontFamily: 'Arial',
+            left: xPos,
+            top: 413,
+            fontSize: 10,
+            fontWeight: 'bold',
+            textAlign: "center",
+            fill: "#000000"
+          });
+          canvas.add(tick);
+          canvas.add(text);
+          unit += 1;
+          xPos = xPos + scale;
+        }
+
+        yPos = 400 - scale;
+        unit = 1;
+        while(yPos > 0 && yPos <= 800){
+          tick = new fabric.Line([390, yPos, 410, yPos], {
+            selectable: false,
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+          st = unit.toString() + '';
+          text = new fabric.IText(st, {
+              fontFamily: 'Arial',
+              left: 380,
+              top: yPos - 6,
+              fontSize: 10,
+              fontWeight: 'bold',
+              textAlign: "center",
+              fill: "#000000"
+          });
+          canvas.add(tick);
+          canvas.add(text);
+          unit += 1;
+          yPos = yPos - scale;
+        }
+
+        yPos = 400 + scale;
+        unit = -1;
+        while(yPos < 800 && yPos > 0){
+          tick = new fabric.Line([390, yPos, 410, yPos], {
+            selectable: false,
+            strokeWidth: 2,
+            fill: 'black',
+            stroke: 'black',
+            originX: 'center',
+            originY: 'center',
+            targetFindTolerance: true
+          });
+          st = unit.toString() + '';
+          text = new fabric.IText(st, {
+              fontFamily: 'Arial',
+              left: 380,
+              top: yPos - 6,
+              fontSize: 10,
+              fontWeight: 'bold',
+              textAlign: "center",
+              fill: "#000000"
+          });
+          canvas.add(tick);
+          canvas.add(text);
+          unit -= 1;
+          yPos = yPos + scale;
+        }
+        //adding 0
+        text = new fabric.IText('0', {
+          fontFamily: 'Arial',
+          left: 390,
+          top: 405,
+          fontSize: 10,
+          fontWeight: 'bold',
+          textAlign: "center",
+          fill: "#000000"
+        });
+        canvas.add(text);
+        canvas.renderAll();
+      }
+
+      function undo(){
+        var canvas_objects = canvas._objects;
+        if(canvas_objects.length !== 0){
+         var last = canvas_objects[canvas_objects.length -1]; //Get last object   
+         canvas.remove(last);
+         canvas.renderAll();
+     }
+   }
+
+      function clearPlane(){
+        canvas.clear();
+        drawAxis();
+      }
+      drawAxis();
+    </script>
+  </body>
+</html>
