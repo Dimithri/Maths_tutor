@@ -33,7 +33,7 @@
             	<label for="drawing-color">Line color:</label>
            		<input type="color" value="#005E7A" id="drawing-color"><br>
             </div>
-        <button id="drawcompleteSet">Complete Set</button>
+        <button id="drawcompleteSet">Rectangle</button>
       <button id="undo">Undo</button>
       <button id ="save">Save</button>
       <button id="clearPlane">Clear Plane</button>
@@ -241,7 +241,10 @@
 
         	//06.09 11.08 AM
         	var points = [startX, startY, pointer.x, pointer.y];
-        	canvas.remove(getElementByMyId('arrow'));
+        	for (var i = 0; i < 3; i++) {
+        		canvas.remove(getElementByMyId('arrow'))
+        	}
+        	//canvas.remove(getElementByMyId('arrow'));
         	addArrow(points);
         	line.set({x2:pointer.x, y2:pointer.y});
         	//canvas.add(addArrow(o, points));
@@ -264,10 +267,13 @@
        // var pointer = canvas.getPointer(o.e);
         if (label_clicked) {
         	label_clicked = false;
-        	canvas.remove(getElementByMyId('arrow'));
+        	for (var i = 0; i < 3; i++) {
+        		canvas.remove(getElementByMyId('arrow'));
+        	}
+        	//canvas.remove(getElementByMyId('arrow'));
 
         	//06.09 11.42 AM
-        	/*points = [startX, startY, lastX, lastY];
+        	points = [startX, startY, lastX, lastY];
         	//06.09 11.33 AM
 			line = new fabric.Line([startX, startY, lastX, lastY], {
 			            strokeWidth: 2,
@@ -281,11 +287,13 @@
 			            hasControls:false
 			          });
 
-			canvas.add(line);
-			addArrow(points);*/
+			//canvas.add(line);
+			addArrow(points);
 
 			//06.09 11.42 AM
-			line = new fabric.Line(points, {
+
+			//commented @ 3.45 PM
+			/*line = new fabric.Line(points, {
             strokeWidth: 2,
             stroke: 'black',
             fill: 'black',
@@ -294,7 +302,8 @@
             lockScalingX: true,
             lockScalingY: true,
             selectable: true,
-            hasControls:false
+            hasControls:false,
+            hasBorders: false
           });
 
         var centerX = (line.x1 + line.x2)/2,
@@ -311,7 +320,7 @@
           hasControls: false,
           lockScalingX: true,
           lockScalingY: true,
-          lockRotation: false,
+          lockRotation: true,
           pointType: 'arrow_start',
           angle: calcArrowAngle(),
           width: 10,
@@ -333,6 +342,7 @@
             hasControls: false,
             lockScalingX: true,
             lockScalingY: true,
+            lockRotation: true,
             pointType: 'arrow_end',
             fill: '#000'
           });
@@ -343,9 +353,85 @@
         line.dot = arrow.dot = dot;
         line.arrow = dot.arrow = arrow;
         // var groupArrow = new fabric.Group([line,triangle],{left: points[0]+8,top: points[1]-8, id: 'arrow', hasRotatingPoint: false, lockScalingY: true});
-        var groupArrow = new fabric.Group([line, arrow, dot],{id: 'completedarrow'});
-          //canvas.add(line, arrow, dot);
-        canvas.add(groupArrow);		
+        var groupArrow = new fabric.Group([line, arrow, dot],{id: 'completedarrow', lockScalingX: true, lockScalingY: true, hasBorders: false, hasControls: false, hasRotatingPoint: false});
+        canvas.add(line, arrow, dot);*/
+       // canvas.add(groupArrow);
+
+
+          //06.09 1.48PM
+          //no use in here
+          /*function moveEnd(obj){
+            var p = obj, x1, y1, x2, y2;
+
+            if (obj.pointType === 'arrow_end') {
+              obj.line.set('x2', obj.get('left'));
+              obj.line.set('y2', obj.get('top'));
+            } else{
+              obj.line.set('x1', obj.get('left'));
+              obj.line.set('y1', obj.get('top'));
+            }
+
+            obj.line._setWidthHeight();
+
+            x1 = obj.line.get('x1');
+            y1 = obj.line.get('y1');
+            x2 = obj.line.get('x2');
+            y2 = obj.line.get('y2');
+
+            angle = calcArrowAngle(x1, y1, x2, y2);
+
+            if (obj.pointType === 'arrow_end') {
+              obj.arrow.set('angle', angle-90);
+            } else{
+              obj.set('angle', angle - 90);
+            }
+            obj.line.setCoords();
+            canvas.renderAll();
+        }
+
+        function moveLine(){
+          var oldCenterX = (line.x1 + line.x2)/2,
+              oldCenterY = (line.y1 + line.y2)/2,
+              deltaX = line.left - oldCenterX,
+              deltaY = line.top - oldCenterY;
+
+          line.arrow.set({
+            'left': line.x1 + deltaX,
+            'top': line.y1 + deltaY
+          }).setCoords();
+
+          line.dot.set({
+            'left': line.x2 + deltaX,
+            'top': line.y2 + deltaY
+          }).setCoords();
+
+          line.set({
+            'x1': line.x1 + deltaX,
+            'y1': line.y1 + deltaY,
+            'x2': line.x2 + deltaX,
+            'y2': line.y2 + deltaY
+          });
+
+          line.set({
+            'left': (line.x1 + line.x2) / 2,
+            'top': (line.y1 + line.y2) / 2
+          });
+        }
+
+        arrow.on('moving', function(){
+            moveEnd(arrow);
+        });
+
+        dot.on('moving', function(){
+          moveEnd(dot);
+        });
+
+        line.on('moving', function(){
+          moveLine();
+        });*/
+
+
+       // canvas.add(groupArrow);		
         	//06.09 11.08 AM
         	/*var completedArrow = getElementByMyId('arrow');
         	
@@ -411,7 +497,7 @@
       	var object = null;
       	var objects = canvas.getObjects();
       	for (var i = 0, len = canvas.size(); i < len; i++) {
-			if (objects[i].id&& objects[i].id === ID) {
+			if (objects[i].customType&& objects[i].customType === ID) {
 				object = objects[i];
 				break;
 			}
@@ -435,7 +521,7 @@
             lockScalingX: true,
             lockScalingY: true,
             selectable: true,
-            hasControls:false
+            hasControls:true
           });
 
         var centerX = (line.x1 + line.x2)/2,
@@ -449,10 +535,10 @@
           originX: 'center',
           originY: 'center',
           hasBorders: false,
-          hasControls: false,
+          hasControls: true,
           lockScalingX: true,
           lockScalingY: true,
-          lockRotation: false,
+          lockRotation: true,
           pointType: 'arrow_start',
           angle: calcArrowAngle(),
           width: 10,
@@ -471,9 +557,10 @@
             originX: 'center',
             originY: 'center',
             hasBorders: false,
-            hasControls: false,
+            hasControls: true,
             lockScalingX: true,
             lockScalingY: true,
+            lockRotation: true,
             pointType: 'arrow_end',
             fill: '#000'
           });
@@ -484,9 +571,9 @@
         line.dot = arrow.dot = dot;
         line.arrow = dot.arrow = arrow;
         // var groupArrow = new fabric.Group([line,triangle],{left: points[0]+8,top: points[1]-8, id: 'arrow', hasRotatingPoint: false, lockScalingY: true});
-        var groupArrow = new fabric.Group([line, arrow, dot],{id: 'arrow'});
-          //canvas.add(line, arrow, dot);
-        canvas.add(groupArrow);					//this added arrow head and the dot at the right place
+        //var groupArrow = new fabric.Group([line, arrow, dot],{id: 'arrow', hasControls: false, lockScalingX:true, lockScalingY: true, hasBorders: false, hasRotatingPoint: false});
+        canvas.add(line, arrow, dot);
+       // canvas.add(groupArrow);					//this added arrow head and the dot at the right place
       
 
 
