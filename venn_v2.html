@@ -1,0 +1,506 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="editor.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="./css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src = "fabric.js-1.6.1/dist/fabric.js"></script>
+  </head>
+  <body>
+
+    <div>
+      <canvas id="myCanvas" width="800" height="500" style="border:1px solid #000000;"></canvas>
+    </div>
+
+    <div class="col-lg-2">
+        <button id="drawCircle">Circle</button>
+        <button id="drawLine">Arrow</button>
+        <button id="enterText">Text Label</button>
+          <button id="drawing-mode" class="btn btn-info">Colour</button>
+         	<div style="display: none;" id="drawing-mode-options">
+            	<label for="drawing-color">Line color:</label>
+           		<input type="color" value="#005E7A" id="drawing-color"><br>
+            </div>
+        <button id="drawcompleteSet">Complete Set</button>
+      <button id="undo">Undo</button>
+      <button id ="save">Save</button>
+      <button id="clearPlane">Clear Plane</button>
+    </div>
+
+    <script type="text/javascript">
+      var canvas = new fabric.Canvas('myCanvas', {
+          isDrawingMode : false,
+          selectable : false,
+        });
+      var circle_clicked = false, label_clicked = false, text_clicked = false, complete_set = false;
+      var isDown = false, isMoving = false;
+      var originX, originY, startX, startY, lastX, lastY;
+      var line, arrow, dot, dot_left, dot_top;
+      var drawingModeEl = document.getElementById('drawing-mode'),
+      drawingOptionsEl = document.getElementById('drawing-mode-options'),
+      drawingColorEl = document.getElementById('drawing-color'),
+      drawingLineWidthEl = 5;
+
+    drawingModeEl.onclick = function() {
+    	canvas.isDrawingMode = !canvas.isDrawingMode;
+    	if (canvas.isDrawingMode) {
+      		drawingModeEl.innerHTML = 'Hide Colour';
+      		drawingOptionsEl.style.display = '';
+    	}
+    	else {
+      		drawingModeEl.innerHTML = 'Colour';
+      		drawingOptionsEl.style.display = 'none';
+    	}
+  	}
+
+
+    drawingColorEl.onchange = function() {
+    	canvas.freeDrawingBrush.color = drawingColorEl.value;
+  		};
+
+  		if (canvas.freeDrawingBrush) {
+    		canvas.freeDrawingBrush.color = drawingColorEl.value;
+    		canvas.freeDrawingBrush.width = drawingLineWidthEl;
+  	}
+
+
+    $('#drawCircle').click(function (e){
+        circle_clicked = true;
+        label_clicked = false;
+        text_clicked = false;
+        complete_set = false;
+      });
+
+    $('#drawcompleteSet').click(function (){
+    	complete_set = true;
+    	circle_clicked = false;
+    	text_clicked = false;
+    	label_clicked = false;
+    });
+
+    $('#drawLine').click(function (e){
+        label_clicked = true;
+        circle_clicked = false;
+        text_clicked = false;
+        complete_set = false;
+       // createLabel();
+      });
+
+    $('#enterText').click(function (e){
+        text_clicked = true;
+        circle_clicked = false;
+        label_clicked = false;
+        complete_set = false;
+      });
+
+    $('#save').click(function (e){
+        var svg = canvas.toSVG();
+		
+		fabric.log(svg);   
+		//sending the svg to the server
+		$.ajax({
+		    crossDomain: true,
+		    url: 'http://127.0.0.1:8000/svg/',
+		    type: 'POST',
+		    data: {
+		       'str': svg, 
+		    },
+		    success: function(){alert('PUT completed');}
+		});
+      });
+
+    $('#undo').click(function (e){
+        var canvas_objects = canvas._objects;
+        if(canvas_objects.length !== 0){
+         var last = canvas_objects[canvas_objects.length -1]; //Get last object   
+         canvas.remove(last);
+         canvas.renderAll();
+       }
+       });
+
+    $('#clearPlane').click(function (e){
+        canvas.clear();
+      });
+
+    canvas.on('mouse:down', function(o){
+
+        isDown = true;
+        var pointer = canvas.getPointer(o.e);
+
+        //creating a set
+        if (circle_clicked) { 
+          label_clicked = false;
+          originX = pointer.x;
+          originY = pointer.y;
+          var circle = new fabric.Circle({
+            left: pointer.x,
+            top: pointer.y,
+            radius: 50,
+            strokeWidth: 2,
+            fill: "transparent",
+            stroke: 'black',
+            selectable: true,
+            originX: 'center',
+            originY: 'center'
+          });
+          canvas.add(circle);
+          circle_clicked = false;
+        }
+
+        //creating an arrow
+        if (label_clicked) {
+          var points = [pointer.x, pointer.y, pointer.x, pointer.y];
+          startX = points[0];
+          startY = points[1];
+
+        /*var dot = new fabric.Circle({
+			fill: 'black',
+			radius: 8,
+			originX: 'center',
+			originY: 'center',
+			selectable: false
+      	});
+
+          dot.set({
+          	top: startY,
+          	left: startX
+          });
+
+          dot_top = dot.top;
+          dot_left = dot.left;*/
+
+         // canvas.add(dot);
+        // canvas.renderAll();
+         //label_clicked = false;
+          //function which is used to draw arrow earlier
+          addArrow(points);
+        }
+
+        //adding text labels
+        if (text_clicked) {
+          canvas.add(new fabric.IText('test', { 
+            fontFamily: 'Sinhala',
+            left: pointer.x, 
+            top: pointer.y, 
+            fontSize: 12
+          }));
+          text_clicked = false;
+        }
+
+        if (complete_set) {
+        	var box = new fabric.Rect({
+        		left: pointer.x, 
+        		top: pointer.y,
+        		fill: 'transparent',
+        		width: 100,
+        		height: 100,
+        		hasBorders: true,
+        		strokeWidth: 0.5,
+        		stroke: 'black'
+        	});
+
+        	canvas.add(box);
+        	complete_set = false;
+        }
+      });
+
+    canvas.on('mouse:move', function(o){
+
+      	isMoving = true;
+      	var pointer = canvas.getPointer(o.e);
+      	//var points = [startX, startY, pointer.x, pointer.y];
+        if (!isDown) return;
+        //var pointer = canvas.getPointer(o.e);
+
+        if (label_clicked) {
+
+          //this 'if's are for venn.html
+        	/*if (dot_left < pointer.x && label_clicked) {
+        		canvas.remove(getElementByMyId('arrow'));
+        		canvas.add(createLineArrow([dot_left, dot_top, pointer.x, dot_top], 'left'));
+        	}	
+
+        	if (dot_left > pointer.x && label_clicked) {
+        		canvas.remove(getElementByMyId('arrow'));
+        		canvas.add(createLineArrow([dot_left, dot_top, pointer.x, dot_top], 'right'));
+        	}*/
+        	//addArrow(o, points);
+
+        	line.set({x2:pointer.x, y2:pointer.y});
+        	//canvas.add(addArrow(o, points));
+        	//canvas.remove(getElementByMyId('arrow'));
+        	
+
+         
+           }
+
+      });
+
+    canvas.on('mouse:up', function(o){
+        isDown = false;
+        isMoving = false;
+       // var pointer = canvas.getPointer(o.e);
+        if (label_clicked) {
+        	label_clicked = false;
+        	/*var completedArrow = getElementByMyId('arrow');
+        	
+        	completedArrow.set('id' , 'completedarrow');
+        	fabric.log(completedArrow.id);*/
+        }
+      });
+
+
+      //this function is for venn.html
+   /*function createLineArrow(points, side){
+
+      	dx = points[3] - points[1];
+      	dy = points[2] - points[0];
+
+      	angle = (Math.atan2(dy, dx) * 180 / Math.PI) - 90;
+
+      	line = new fabric.Line(points, {
+      		strokeWidth: 2,
+      		stroke: 'black',
+      		fill: 'black',
+      		originX: 'center',
+      		originY: 'center',
+      		lockScalingX: true,
+      		lockScalingY: true,
+      		selectable: true,
+      		angle: angle,
+      	});
+
+      	var dot = new fabric.Circle({
+			fill: 'black',
+			radius: 8,
+			originX: 'center',
+			originY: 'center',
+			selectable: false,
+			top: dot_top,
+			left: dot_left
+      	});
+      	
+      	var triangle = new fabric.Triangle({
+      		angle: angle,
+      		top: points[3],
+      		left: points[2],
+      		originX: 'center',
+      		originY: 'center',
+      		width: 10,
+      		height: 10,
+      		fill: 'black',
+      		selectable: false
+      	});
+
+      	if (side == 'left') {
+      		var groupArrow = new fabric.Group([dot,line,triangle],{left: points[0], top: points[3], id: 'arrow', hasRotatingPoint: false, lockScalingY: true, hasControls: true});
+      	}
+      	if (side == 'right') {
+      		var groupArrow = new fabric.Group([line,triangle, dot],{left: points[2]-16,top: points[3]-8, id: 'arrow', hasRotatingPoint: false, lockScalingY: true, hasControls: true});
+      	}
+
+      	return groupArrow;
+      }*/
+
+    function getElementByMyId(ID){
+      	var object = null;
+      	var objects = canvas.getObjects();
+      	for (var i = 0, len = canvas.size(); i < len; i++) {
+			if (objects[i].id&& objects[i].id === ID) {
+				object = objects[i];
+				break;
+			}
+		}
+		return object;
+      }
+
+      //function used to draw arrow earlier
+    function addArrow(points){
+
+      	
+
+        //var pointer = canvas.getPointer(o.e);
+       // var points = [pointer.x, pointer.y, pointer.x, pointer.y];
+        line = new fabric.Line(points, {
+            strokeWidth: 2,
+            stroke: 'black',
+            fill: 'black',
+            originX: 'center',
+            originY: 'center',
+            lockScalingX: true,
+            lockScalingY: true,
+            selectable: true,
+            hasControls:false
+          });
+
+        var centerX = (line.x1 + line.x2)/2,
+              centerY = (line.y1 + line.y2)/2;
+          deltaX = line.left - centerX,
+          deltaY = line.top - centerY;
+
+        arrow = new fabric.Triangle({
+          left: line.get('x1') + deltaX,
+          top: line.get('y1') + deltaY,
+          originX: 'center',
+          originY: 'center',
+          hasBorders: false,
+          hasControls: false,
+          lockScalingX: true,
+          lockScalingY: true,
+          lockRotation: false,
+          pointType: 'arrow_start',
+          angle: calcArrowAngle(),
+          width: 10,
+          height: 10,
+          fill: '#000'
+          });
+
+        arrow.line = line;
+
+        dot = new fabric.Circle({
+            left: line.get('x2') + deltaX,
+            top: line.get('y2') + deltaY,
+            radius: 2,
+            stroke: '#000',
+            strokeWidth: 3,
+            originX: 'center',
+            originY: 'center',
+            hasBorders: false,
+            hasControls: false,
+            lockScalingX: true,
+            lockScalingY: true,
+            pointType: 'arrow_end',
+            fill: '#000'
+          });
+          dot.line = line;
+          
+          //canvas.add(arrow);
+        line.customType = arrow.customType = dot.customType = 'arrow';
+        line.dot = arrow.dot = dot;
+        line.arrow = dot.arrow = arrow;
+        // var groupArrow = new fabric.Group([line,triangle],{left: points[0]+8,top: points[1]-8, id: 'arrow', hasRotatingPoint: false, lockScalingY: true});
+        var groupArrow = new fabric.Group([line, arrow, dot],{id: 'arrow'});
+          //canvas.add(line, arrow, dot);
+        //canvas.add(groupArrow);
+        canvas.add(line, arrow, dot);
+
+       /* if (isMoving) {
+      		canvas.remove(getElementByMyId('arrow'));
+      	}*/
+
+        function moveEnd(obj){
+            var p = obj, x1, y1, x2, y2;
+
+            if (obj.pointType === 'arrow_end') {
+              obj.line.set('x2', obj.get('left'));
+              obj.line.set('y2', obj.get('top'));
+            } else{
+              obj.line.set('x1', obj.get('left'));
+              obj.line.set('y1', obj.get('top'));
+            }
+
+            obj.line._setWidthHeight();
+
+            x1 = obj.line.get('x1');
+            y1 = obj.line.get('y1');
+            x2 = obj.line.get('x2');
+            y2 = obj.line.get('y2');
+
+            angle = calcArrowAngle(x1, y1, x2, y2);
+
+            if (obj.pointType === 'arrow_end') {
+              obj.arrow.set('angle', angle-90);
+            } else{
+              obj.set('angle', angle - 90);
+            }
+            obj.line.setCoords();
+            canvas.renderAll();
+        }
+
+        function moveLine(){
+          var oldCenterX = (line.x1 + line.x2)/2,
+              oldCenterY = (line.y1 + line.y2)/2,
+              deltaX = line.left - oldCenterX,
+              deltaY = line.top - oldCenterY;
+
+          line.arrow.set({
+            'left': line.x1 + deltaX,
+            'top': line.y1 + deltaY
+          }).setCoords();
+
+          line.dot.set({
+            'left': line.x2 + deltaX,
+            'top': line.y2 + deltaY
+          }).setCoords();
+
+          line.set({
+            'x1': line.x1 + deltaX,
+            'y1': line.y1 + deltaY,
+            'x2': line.x2 + deltaX,
+            'y2': line.y2 + deltaY
+          });
+
+          line.set({
+            'left': (line.x1 + line.x2) / 2,
+            'top': (line.y1 + line.y2) / 2
+          });
+        }
+
+        arrow.on('moving', function(){
+            moveEnd(arrow);
+        });
+
+        dot.on('moving', function(){
+          moveEnd(dot);
+        });
+
+        line.on('moving', function(){
+          moveLine();
+        });
+
+       // label_clicked = false;
+      }
+
+       function calcArrowAngle(x1, y1, x2, y2){
+        var angle = 0, x, y;
+
+        x = x2 - x1;
+        y = y2 - y1;
+
+        if (x === 0) {
+          angle = (y === 0) ? 0 : (y > 0) ? Math.PI /2 : Math.PI *3 /2;
+        } else if (y === 0) {
+          angle = (x > 0) ? 0 : Math.PI;
+        } else {
+          angle = (x < 0) ? Math.atan(y/x) + Math.PI : (y < 0) ? Math.atan(y/x) + (2*Math.PI) :Math.atan(y/x);
+        }
+
+        return ((angle*180/Math.PI));
+      }
+
+       function createLabel(){
+
+      	var dot = new fabric.Circle({
+			fill: 'black',
+			radius: 8,
+			originX: 'center',
+			originY: 'center',
+			selectable: false
+      	});
+      	label_clicked = true;
+      }
+
+    </script>
+  </body>
