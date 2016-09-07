@@ -16,7 +16,7 @@
       }
     </style>
     <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-    <script type="text/javascript" src = "fabric.js-1.6.1/dist/fabric.js"></script>
+    <script type="text/javascript" src = "http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.6.3/fabric.min.js"></script>
   </head>
   <body>
 
@@ -127,7 +127,7 @@
          var last = canvas_objects[canvas_objects.length -1]; //Get last object  
 
          //this is to undo an arrow in a single step. Otherwise, it would take three undo's
-         if (last.customType == 'arrow') {
+         if (last.customType == 'arrow' || last.customType == 'completedArrow') {
          	var arrowline = canvas_objects[canvas_objects.length - 2];
          	var arrowhead = canvas_objects[canvas_objects.length - 3];
          	canvas.remove(last);
@@ -176,7 +176,22 @@
           var points = [pointer.x, pointer.y, pointer.x, pointer.y];
           startX = points[0];
           startY = points[1];
+
+          //this is to de-select other objects when creating an arrow. Just a test
+          //07.09 11.41 AM
+          for (var i = 0; i < canvas._objects.length; i++) {
+          	var object = canvas._objects[i];
+          	object.set('lockMovementX', 'true');
+          	object.set('lockMovementY', 'true');
+          }
+
+          //canvas.deactivateAll().renderAll();
+
+
           addArrow(points);
+
+          
+
         }
 
         //adding text labels
@@ -221,6 +236,13 @@
         	for (var i = 0; i < 3; i++) {
         		canvas.remove(getElementByMyId('arrow'))
         	}
+        	for (var i = 0; i < canvas._objects.length; i++) {
+          	var object = canvas._objects[i];
+          	object.set('lockMovementX', 'true');
+          	object.set('lockMovementY', 'true');
+          }
+
+          //canvas.deactivateAll().renderAll();
         	addArrow(points);
         	line.set({x2:pointer.x, y2:pointer.y});         
            }
@@ -242,9 +264,24 @@
         		canvas.remove(getElementByMyId('arrow'));
         	}
         	
+        	for (var i = 0; i < canvas._objects.length; i++) {
+          	var object = canvas._objects[i];
+          	object.set('lockMovementX', 'true');
+          	object.set('lockMovementY', 'true');
+          }
+
+         // canvas.deactivateAll().renderAll();
         	points = [startX, startY, lastX, lastY];
         	
 			addArrow(points);
+
+			for (var i = 0; i < canvas._objects.length; i++) {
+				var object = canvas._objects[i];
+				object.set({
+					lockMovementX: false,
+					lockMovementY: false
+				});
+			}
         }
       });
 
@@ -318,7 +355,12 @@
           });
           dot.line = line;
           
-        line.customType = arrow.customType = dot.customType = 'arrow';
+        if (isDown) {
+        	line.customType = arrow.customType = dot.customType = 'arrow';
+        }
+        else	{
+        	line.customType = arrow.customType = dot.customType = 'completedArrow';
+        }
         line.dot = arrow.dot = dot;
         line.arrow = dot.arrow = arrow;
         canvas.add(line, arrow, dot);
