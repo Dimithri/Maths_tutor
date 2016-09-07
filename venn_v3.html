@@ -177,21 +177,16 @@
           startX = points[0];
           startY = points[1];
 
-          //this is to de-select other objects when creating an arrow. Just a test
-          //07.09 11.41 AM
+          //This for loop makes all the other objects in the canvas immobile while the drawing of the arrow. 
           for (var i = 0; i < canvas._objects.length; i++) {
           	var object = canvas._objects[i];
-          	object.set('lockMovementX', 'true');
-          	object.set('lockMovementY', 'true');
+          	object.set({
+          		lockMovementX: true,
+          		lockMovementY: true
+          	});
           }
 
-          //canvas.deactivateAll().renderAll();
-
-
           addArrow(points);
-
-          
-
         }
 
         //adding text labels
@@ -200,7 +195,7 @@
             fontFamily: 'Sinhala',
             left: pointer.x, 
             top: pointer.y, 
-            fontSize: 12
+            fontSize: 14
           }));
           text_clicked = false;
         }
@@ -236,15 +231,17 @@
         	for (var i = 0; i < 3; i++) {
         		canvas.remove(getElementByMyId('arrow'))
         	}
-        	for (var i = 0; i < canvas._objects.length; i++) {
-          	var object = canvas._objects[i];
-          	object.set('lockMovementX', 'true');
-          	object.set('lockMovementY', 'true');
-          }
 
-          //canvas.deactivateAll().renderAll();
+        	for (var i = 0; i < canvas._objects.length; i++) {
+	          	var object = canvas._objects[i];
+	          	object.set({
+	          		lockMovementX: true, 
+	          		lockMovementY: true
+	          	});
+            }
+
         	addArrow(points);
-        	line.set({x2:pointer.x, y2:pointer.y});         
+        	//line.set({x2:pointer.x, y2:pointer.y});         
            }
 
       });
@@ -265,16 +262,18 @@
         	}
         	
         	for (var i = 0; i < canvas._objects.length; i++) {
-          	var object = canvas._objects[i];
-          	object.set('lockMovementX', 'true');
-          	object.set('lockMovementY', 'true');
-          }
+	          	var object = canvas._objects[i];
+	          	object.set({
+	          		lockScalingX: true,
+	          		lockMovementY: true
+	          	});
+            }
 
-         // canvas.deactivateAll().renderAll();
         	points = [startX, startY, lastX, lastY];
         	
 			addArrow(points);
 
+			//This for loop enables the movement of the objects after the drawing of the arrow.
 			for (var i = 0; i < canvas._objects.length; i++) {
 				var object = canvas._objects[i];
 				object.set({
