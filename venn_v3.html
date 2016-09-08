@@ -20,7 +20,7 @@
   </head>
   <body>
 
-    <div>
+    <div id='c1'>
       <canvas id="myCanvas" width="800" height="500" style="border:1px solid #000000;"></canvas>
     </div>
 
@@ -44,6 +44,7 @@
           isDrawingMode : false,
           selectable : false,
         });
+
       canvas.selection = false;
       var circle_clicked = false, label_clicked = false, text_clicked = false, complete_set = false;
       var isDown = false, isMoving = false;
@@ -110,7 +111,8 @@
 		
 		fabric.log(svg);   
 		//sending the svg to the server
-		$.ajax({
+		//07.09 - Commented for testing
+		/*$.ajax({
 		    crossDomain: true,
 		    url: 'http://127.0.0.1:8000/svg/',
 		    type: 'POST',
@@ -118,7 +120,7 @@
 		       'str': svg, 
 		    },
 		    success: function(){alert('PUT completed');}
-		});
+		});*/
       });
 
     $('#undo').click(function (e){
@@ -386,7 +388,7 @@
             angle = calcArrowAngle(x1, y1, x2, y2);
 
             if (obj.pointType === 'arrow_end') {
-              obj.arrow.set('angle', angle-90);
+              obj.arrow.set('angle', angle - 90);
             } else{
               obj.set('angle', angle - 90);
             }
