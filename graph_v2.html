@@ -1,5 +1,6 @@
 <!DOCTYPE HTML>
 <html>
+
   <head>
     <meta charset="utf-8"/>
     <style>
@@ -9,9 +10,11 @@
       }
     </style>
     <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-    <script type="text/javascript" src = "fabric.js-1.6.1/dist/fabric.js"></script>
+    <script type="text/javascript" src = "http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.6.3/fabric.min.js"></script>
   </head>
+
   <body >
+
     <div>
      <canvas id="myCanvas" width = 800 height = 800></canvas>
     </div>
@@ -21,6 +24,7 @@
       <INPUT type = "Button" value = "Clear Plane" onclick="clearPlane()"/> 
       <button id ="save">Save</button>
     </div>
+
     <script type="text/javascript">
       var canvas = new fabric.Canvas('myCanvas', {
           isDrawingMode : false,
@@ -28,17 +32,83 @@
         });
       var graph_clicked = false;
       var pointer;
+      var prevHline, prevVline, prevPoint;
       var scale = 40;
       var points = [];
+      var isDown = false;
 
       canvas.on('mouse:down', function(o){
+        isDown = true;
         pointer = canvas.getPointer(o.e);
         if (!graph_clicked) {
-          markPoint(pointer.x, pointer.y);
-        } else{
+
+         // markPoint(pointer.x, pointer.y);
+        } 
+        else{
           drawGraph();
         }
       });
+
+      //adding the vertical and horizontal dashed lines in order to make it easier for the user to identify the exact position
+      canvas.on('mouse:move', function(o){
+
+        var hline, vline;
+
+        if (!isDown) {
+          return
+        }
+
+        if (!graph_clicked) {
+
+          canvas.remove(prevVline, prevHline);
+          canvas.renderAll();
+          pointer = canvas.getPointer(o.e);
+          if (!graph_clicked) {
+            hline = new fabric.Line([pointer.x, pointer.y, 400, pointer.y],{
+              strokeDashArray: [5,5],
+              selectable: false,
+              strokeWidth: 1,
+              fill: 'black',
+              stroke: 'black',
+              originX: 'center',
+              originY: 'center',
+              targetFindTolerance: true
+            });
+
+            vline = new fabric.Line([pointer.x, pointer.y, pointer.x, 400],{
+              strokeDashArray: [5,5],
+              selectable: false,
+              strokeWidth: 1,
+              fill: 'black',
+              stroke: 'black',
+              originX: 'center',
+              originY: 'center',
+              targetFindTolerance: true
+            });
+
+            //markPoint(pointer.x, pointer.y);
+            canvas.add(vline, hline);
+            prevHline = hline;
+            prevVline = vline;
+            prevPoint = points[points.length - 1];
+          }
+        }
+        
+      });
+
+      canvas.on('mouse:up', function(o){
+        isDown = false;
+        pointer = canvas.getPointer(o.e);
+        if (!graph_clicked) {
+          markPoint(pointer.x, pointer.y);
+
+          //on 'mouse:up', remove the dashed lines
+          canvas.remove(prevHline, prevVline);
+        }
+        if (graph_clicked) {
+          graph_clicked = false;
+        }
+      })
 
       $('#save').click(function (e){
 
@@ -69,26 +139,18 @@
       function drawGraph(){
         var x0, y0, x1, y1, m;
         if (points.length != 0) {
+          
+
           var p1 = points[points.length - 2];
           var p2 = points[points.length - 1];
-          m = (p1.y - p2.y) / (p1.x - p2.x);
 
-          var x0 = p1.x -(100/Math.sqrt(m*m+1));
-          var test = (p1.y-p2.y)/(p1.x-p2.x)*(x0-p1.x);
-          if(test<0)
-          var y0 = p1.y - Math.abs(test);
-          else
-          var y0 = p1.y + Math.abs(test);
+          x0 = (p2.x - p1.x)*0.1 + p2.x;
+          x1 = (p1.x - p2.x)*0.1 + p1.x;
 
-          //extending last point
-          var x1 = p2.x+(100/Math.sqrt(m*m+1));
+          y0 = (p2.y - p1.y)*0.1 + p2.y;
+          y1 = (p1.y - p2.y)*0.1 + p1.y;
+
           
-          var ext = m*(x1-p2.x);
-          if(ext>0)
-          var y1 = p2.y+Math.abs(ext);
-          else
-          var y1 = p2.y-Math.abs(ext);
-
           var line = new fabric.Line([x0, y0, x1, y1],{
             selectable: false,
             strokeWidth: 2,
@@ -104,8 +166,11 @@
       }
 
       function markPoint(x, y){
+        var label;
         this.x = x;
         this.y = y;
+
+        //adding labels to the 'circle' and 'label', to make it easier to remove them with the undo
         var circle = new fabric.Circle({
           left: x,
           top: y,
@@ -113,14 +178,17 @@
           strokeWidth: 5,
           stroke: 'black',
           selectable: false,
-          originX: 'center', originY: 'center'
+          originX: 'center', 
+          originY: 'center',
+          id: 'point',
         });
 
           xcoor = Math.round(((x-400) / scale)*10)/10;
           ycoor = Math.round(((400-y)/ scale)*10)/10;
           
+          fabric.log(x+ " " +y);
           coordinates = "("+xcoor+" , "+ycoor+")";
-          var text = new fabric.IText(coordinates,{
+          label = new fabric.IText(coordinates,{
                 fontFamily: 'Arial',
                 left: x +1,
                 top: y,
@@ -128,14 +196,16 @@
                 fontWeight: 'bold',
                 textAlign: "center",
                 fill: "#000000",
-                selectable: false
+                selectable: false,
+                id: 'label',
               });
           canvas.add(circle);
-          canvas.add(text);
+          canvas.add(label);
           canvas.renderAll();
           points.push({
             x: x,
-            y: y
+            y: y,
+            label: label,
           });
       }
 
@@ -297,6 +367,22 @@
         if(canvas_objects.length !== 0){
          var last = canvas_objects[canvas_objects.length -1]; //Get last object   
          canvas.remove(last);
+
+         //if the last object of the canvas is a label associated with a point, remove point, as well as the label
+         if (last.id !== null && last.id == 'label') {
+          var next = canvas_objects[canvas_objects.length - 1];
+
+          //if the next element is a point, remove it with the label
+          if (next.id !== null && next.id == 'point') {
+
+            //when removing the point from the canvas, remove it from the 'points' array as well
+            points.pop();
+            canvas.remove(next);
+         }
+         }
+         if (last.id !== null && last.id == 'point') {
+          points.pop();
+         }
          canvas.renderAll();
      }
    }
